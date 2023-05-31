@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { apiLinks, pricePaths } from "./apiConfig";
 
 interface Price {
   exchange: string;
@@ -14,44 +15,19 @@ export default function ExchangeTickers() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const requests = [
-          fetch("https://api.kraken.com/0/public/Ticker?pair=xbtusd"),
-          fetch("https://api.bybit.com/v2/public/tickers?symbol=BTCUSD"),
-          fetch("https://api.coinbase.com/v2/prices/BTC-USD/buy"),
-          fetch("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"),
-        ];
-
+        const requests = apiLinks.map((link) => fetch(link));
         const responses = await Promise.all(requests);
-
         const data = await Promise.all(
           responses.map((response) => response.json())
         );
 
         const formattedPrices: Price[] = data.map((response, index) => {
-          switch (index) {
-            case 0: // Kraken
-              return {
-                exchange: "Kraken",
-                price: response.result.XXBTZUSD.c[0],
-              };
-            case 1: // ByBit
-              return {
-                exchange: "ByBit",
-                price: response.result[0].last_price,
-              };
-            case 2: // Coinbase
-              return {
-                exchange: "Coinbase",
-                price: response.data.amount,
-              };
-            case 3: // Binance
-              return {
-                exchange: "Binance",
-                price: response.price,
-              };
-            default:
-              return null as any;
-          }
+          const pricePath = pricePaths[index];
+          const price = eval(`response.${pricePath}`);
+          return {
+            exchange: getExchangeName(index),
+            price: String(price),
+          };
         });
 
         setPrices(formattedPrices);
@@ -62,6 +38,25 @@ export default function ExchangeTickers() {
 
     fetchData();
   }, []);
+
+  const getExchangeName = (index: number): string => {
+    switch (index) {
+      case 0:
+        return "Kraken";
+      case 1:
+        return "ByBit";
+      case 2:
+        return "Coinbase";
+      case 3:
+        return "Binance";
+      case 4:
+        return "Gemini";
+      case 5:
+        return "Huobi";
+      default:
+        return "";
+    }
+  };
 
   return (
     <div>
