@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiLinks, pricePaths } from "./apiConfig";
+import { exchanges } from "./apiConfig";
 
 interface Price {
   exchange: string;
   price: string;
+  currency: string;
 }
 
 export default function ExchangeTickers() {
@@ -15,18 +16,20 @@ export default function ExchangeTickers() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const requests = apiLinks.map((link) => fetch(link));
+        const requests = exchanges.map((exchange) => fetch(exchange.link));
         const responses = await Promise.all(requests);
         const data = await Promise.all(
           responses.map((response) => response.json())
         );
 
         const formattedPrices: Price[] = data.map((response, index) => {
-          const pricePath = pricePaths[index];
+          const exchange = exchanges[index];
+          const pricePath = exchange.pricePath;
           const price = eval(`response.${pricePath}`);
           return {
-            exchange: getExchangeName(index),
+            exchange: exchange.exchangeName,
             price: String(price),
+            currency: exchange.currency,
           };
         });
 
@@ -39,41 +42,41 @@ export default function ExchangeTickers() {
     fetchData();
   }, []);
 
-  const getExchangeName = (index: number): string => {
-    switch (index) {
-      case 0:
-        return "Kraken";
-      case 1:
-        return "ByBit";
-      case 2:
-        return "Coinbase";
-      case 3:
-        return "Binance";
-      case 4:
-        return "Gemini";
-      case 5:
-        return "Huobi";
-      default:
-        return "";
-    }
+  const groupByCurrency = () => {
+    if (!prices) return {};
+
+    const groupedPrices: { [currency: string]: Price[] } = {};
+    prices.forEach((price) => {
+      const { currency } = price;
+      if (!groupedPrices[currency]) {
+        groupedPrices[currency] = [];
+      }
+      groupedPrices[currency].push(price);
+    });
+
+    return groupedPrices;
+  };
+
+  const renderPricesByCurrency = () => {
+    const groupedPrices = groupByCurrency();
+
+    return Object.entries(groupedPrices).map(([currency, prices]) => (
+      <div key={currency}>
+        <h2>Bitcoin/{currency} Prices</h2>
+        <ul>
+          {prices.map((price) => (
+            <li key={price.exchange}>
+              {price.exchange}: ${price.price}
+            </li>
+          ))}
+        </ul>
+      </div>
+    ));
   };
 
   return (
     <div>
-      {prices ? (
-        <div>
-          <h2>Bitcoin/USD Prices</h2>
-          <ul>
-            {prices.map((price) => (
-              <li key={price.exchange}>
-                {price.exchange}: ${price.price}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        <p>Loading...</p>
-      )}
+      {prices ? <div>{renderPricesByCurrency()}</div> : <p>Loading...</p>}
     </div>
   );
 }
