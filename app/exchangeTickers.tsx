@@ -4,7 +4,8 @@ import { exchanges } from "./apiConfig";
 
 interface Price {
   exchange: string;
-  price: string;
+  askPrice: string;
+  bidPrice: string;
   currency: string;
 }
 
@@ -24,11 +25,14 @@ export default function ExchangeTickers() {
 
         const formattedPrices: Price[] = data.map((response, index) => {
           const exchange = exchanges[index];
-          const pricePath = exchange.pricePath;
-          const price = eval(`response.${pricePath}`);
+          const askPricePath = exchange.askPricePath;
+          const bidPricePath = exchange.bidPricePath;
+          const askPrice = eval(`response.${askPricePath}`);
+          const bidPrice = eval(`response.${bidPricePath}`);
           return {
             exchange: exchange.exchangeName,
-            price: String(price),
+            askPrice: String(askPrice),
+            bidPrice: String(bidPrice),
             currency: exchange.currency,
           };
         });
@@ -62,11 +66,12 @@ export default function ExchangeTickers() {
 
     return Object.entries(groupedPrices).map(([currency, prices]) => (
       <div key={currency}>
-        <h2>Bitcoin/{currency} Prices</h2>
+        <h2>{currency} primary currency</h2>
         <ul>
           {prices.map((price) => (
             <li key={price.exchange}>
-              {price.exchange}: ${price.price}
+              <strong>{price.exchange}:</strong> Ask: ${price.askPrice}, Bid: $
+              {price.bidPrice}
             </li>
           ))}
         </ul>
